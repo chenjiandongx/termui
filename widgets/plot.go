@@ -26,11 +26,12 @@ type Plot struct {
 	AxesColor  Color // TODO
 	ShowAxes   bool
 
-	Marker          PlotMarker
-	DotMarkerRune   rune
-	PlotType        PlotType
-	HorizontalScale int
-	DrawDirection   DrawDirection // TODO
+	Marker            PlotMarker
+	DotMarkerRune     rune
+	PlotType          PlotType
+	HorizontalScale   int
+	DrawDirection     DrawDirection // TODO
+	DisableXAxisLabel bool
 }
 
 const (
@@ -148,57 +149,70 @@ func (self *Plot) renderDot(buf *Buffer, drawArea image.Rectangle, maxVal float6
 }
 
 func (self *Plot) plotAxes(buf *Buffer, maxVal float64) {
+	xlabelHeight := xAxisLabelsHeight
+	if self.DisableXAxisLabel {
+		xlabelHeight = 0
+	}
+
 	// draw origin cell
 	buf.SetCell(
 		NewCell(BOTTOM_LEFT, NewStyle(ColorWhite)),
-		image.Pt(self.Inner.Min.X+yAxisLabelsWidth, self.Inner.Max.Y-xAxisLabelsHeight-1),
+		image.Pt(self.Inner.Min.X+yAxisLabelsWidth, self.Inner.Max.Y-xlabelHeight-1),
 	)
 	// draw x axis line
 	for i := yAxisLabelsWidth + 1; i < self.Inner.Dx(); i++ {
 		buf.SetCell(
 			NewCell(HORIZONTAL_DASH, NewStyle(ColorWhite)),
-			image.Pt(i+self.Inner.Min.X, self.Inner.Max.Y-xAxisLabelsHeight-1),
+			image.Pt(i+self.Inner.Min.X, self.Inner.Max.Y-1),
 		)
 	}
 	// draw y axis line
-	for i := 0; i < self.Inner.Dy()-xAxisLabelsHeight-1; i++ {
+	for i := 0; i < self.Inner.Dy()-xlabelHeight-1; i++ {
 		buf.SetCell(
 			NewCell(VERTICAL_DASH, NewStyle(ColorWhite)),
 			image.Pt(self.Inner.Min.X+yAxisLabelsWidth, i+self.Inner.Min.Y),
 		)
 	}
-	// draw x axis labels
-	// draw 0
-	buf.SetString(
-		"0",
-		NewStyle(ColorWhite),
-		image.Pt(self.Inner.Min.X+yAxisLabelsWidth, self.Inner.Max.Y-1),
-	)
-	// draw rest
-	for x := self.Inner.Min.X + yAxisLabelsWidth + (xAxisLabelsGap)*self.HorizontalScale + 1; x < self.Inner.Max.X-1; {
-		label := fmt.Sprintf(
-			"%d",
-			(x-(self.Inner.Min.X+yAxisLabelsWidth)-1)/(self.HorizontalScale)+1,
-		)
+
+	if !self.DisableXAxisLabel {
+		// draw x axis labels
+		// draw 0
 		buf.SetString(
-			label,
+			"0",
 			NewStyle(ColorWhite),
-			image.Pt(x, self.Inner.Max.Y-1),
+			image.Pt(self.Inner.Min.X+yAxisLabelsWidth, self.Inner.Max.Y-1),
 		)
-		x += (len(label) + xAxisLabelsGap) * self.HorizontalScale
+		// draw rest
+		for x := self.Inner.Min.X + yAxisLabelsWidth + (xAxisLabelsGap)*self.HorizontalScale + 1; x < self.Inner.Max.X-1; {
+			label := fmt.Sprintf(
+				"%d",
+				(x-(self.Inner.Min.X+yAxisLabelsWidth)-1)/(self.HorizontalScale)+1,
+			)
+			buf.SetString(
+				label,
+				NewStyle(ColorWhite),
+				image.Pt(x, self.Inner.Max.Y-1),
+			)
+			x += (len(label) + xAxisLabelsGap) * self.HorizontalScale
+		}
 	}
 	// draw y axis labels
-	verticalScale := maxVal / float64(self.Inner.Dy()-xAxisLabelsHeight-1)
+	verticalScale := maxVal / float64(self.Inner.Dy()-xlabelHeight-1)
 	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
 		buf.SetString(
 			fmt.Sprintf("%.2f", float64(i)*verticalScale*(yAxisLabelsGap+1)),
-			NewStyle(ColorWhite),
+			NewStyle(ColorClear),
 			image.Pt(self.Inner.Min.X, self.Inner.Max.Y-(i*(yAxisLabelsGap+1))-2),
 		)
 	}
 }
 
 func (self *Plot) Draw(buf *Buffer) {
+	xlabelHeight := xAxisLabelsHeight
+	if self.DisableXAxisLabel {
+		xlabelHeight = 0
+	}
+
 	self.Block.Draw(buf)
 
 	maxVal := self.MaxVal
@@ -214,7 +228,7 @@ func (self *Plot) Draw(buf *Buffer) {
 	if self.ShowAxes {
 		drawArea = image.Rect(
 			self.Inner.Min.X+yAxisLabelsWidth+1, self.Inner.Min.Y,
-			self.Inner.Max.X, self.Inner.Max.Y-xAxisLabelsHeight-1,
+			self.Inner.Max.X, self.Inner.Max.Y-xlabelHeight-1,
 		)
 	}
 

@@ -21,13 +21,15 @@ import (
 */
 type Table struct {
 	Block
-	Rows          [][]string
-	ColumnWidths  []int
-	TextStyle     Style
-	RowSeparator  bool
-	TextAlignment Alignment
-	RowStyles     map[int]Style
-	FillRow       bool
+	Rows           [][]string
+	ColumnWidths   []int
+	TextStyle      Style
+	RowSeparator   bool
+	TextAlignment  Alignment
+	RowStyles      map[int]Style
+	FillRow        bool
+	VerticalLine   rune
+	HorizontalLine rune
 
 	// ColumnResizer is called on each Draw. Can be used for custom column sizing.
 	ColumnResizer func()
@@ -35,11 +37,13 @@ type Table struct {
 
 func NewTable() *Table {
 	return &Table{
-		Block:         *NewBlock(),
-		TextStyle:     Theme.Table.Text,
-		RowSeparator:  true,
-		RowStyles:     make(map[int]Style),
-		ColumnResizer: func() {},
+		Block:          *NewBlock(),
+		TextStyle:      Theme.Table.Text,
+		RowSeparator:   true,
+		RowStyles:      make(map[int]Style),
+		ColumnResizer:  func() {},
+		VerticalLine:   VERTICAL_LINE,
+		HorizontalLine: HORIZONTAL_LINE,
 	}
 }
 
@@ -111,7 +115,7 @@ func (self *Table) Draw(buf *Buffer) {
 		separatorStyle := self.Block.BorderStyle
 
 		separatorXCoordinate := self.Inner.Min.X
-		verticalCell := NewCell(VERTICAL_LINE, separatorStyle)
+		verticalCell := NewCell(self.VerticalLine, separatorStyle)
 		for i, width := range columnWidths {
 			if self.FillRow && i < len(columnWidths)-1 {
 				verticalCell.Style.Bg = rowStyle.Bg
@@ -127,7 +131,7 @@ func (self *Table) Draw(buf *Buffer) {
 		yCoordinate++
 
 		// draw horizontal separator
-		horizontalCell := NewCell(HORIZONTAL_LINE, separatorStyle)
+		horizontalCell := NewCell(self.HorizontalLine, separatorStyle)
 		if self.RowSeparator && yCoordinate < self.Inner.Max.Y && i != len(self.Rows)-1 {
 			buf.Fill(horizontalCell, image.Rect(self.Inner.Min.X, yCoordinate, self.Inner.Max.X, yCoordinate+1))
 			yCoordinate++
