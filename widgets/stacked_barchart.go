@@ -10,7 +10,7 @@ import (
 
 	rw "github.com/mattn/go-runewidth"
 
-	. "github.com/gizak/termui/v3"
+	. "github.com/chenjiandongx/termui/v3"
 )
 
 type StackedBarChart struct {
